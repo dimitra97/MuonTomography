@@ -1,0 +1,2 @@
+add_executable(run_clusterization_test ClusterizationTests.cpp)
+target_link_libraries(run_clusterization_test PRIVATE mtomo)
