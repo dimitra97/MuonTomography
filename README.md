@@ -6,9 +6,6 @@
 
 To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-<<<<<<< Updated upstream
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-=======
 ## Build the project:
 
 git clone https://gitlab.cern.ch/damperia/muontomography-auth.git
@@ -17,11 +14,10 @@ cd build
 
 if we have an acts installation localy:
 
-cmake -B ./ -S ../muontomography-auth/ -DMTOMO_ACTS_SOURCE=system
+cmake -B ./ -S ../muontomography-auth/ -DMTOMO_ACTS_SOURCE=system   -DCMAKE_PREFIX_PATH=<install-directory>
 
 
 ## DataReader
->>>>>>> Stashed changes
 
 ## Add your files
 
