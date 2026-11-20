@@ -22,6 +22,22 @@ Clusterization::sortHitsPerChamber(const std::vector<dataType>& hits) {
     return sortedHits;
 }
 
+// -------- strip selection --------
+template <typename dataType>
+    requires StripLike<dataType>
+bool Clusterization::acceptStrip(const dataType& hit) const {
+    // time window: the peak of a muon signal sits at a fixed delay after the
+    // trigger, noise peaks at random times
+    const int t = static_cast<int>(hit.time);
+    if (t < m_config.tMin || t > m_config.tMax) return false;
+
+    // raw_q cut: if a sample is below the cut-off consider it a noise strip
+    if (m_config.useRawQCut &&
+        std::ranges::any_of(hit.chargeDist, [&](short q) { return q < m_config.maxChargeCutOff; }))
+        return false;
+    return true;
+}
+
 // -------- build clusters from one event's grouped hits --------
 template <typename dataType>
     requires StripLike<dataType>
@@ -82,26 +98,16 @@ Clusterization::clusterize(const HitsPerLayer<dataType>& hitsPerLayer) const {
             return true;
         };
 
+        // drop noise strips first, then group neighbours (gap <= maxGap)
+        std::erase_if(layerHits, [&](const dataType& h) { return !acceptStrip(h); });
+        if (layerHits.empty()) continue;
+
         int last = static_cast<int>(layerHits[0].strip);
-        std::vector<short> raw_q_dist = layerHits[0].chargeDist;
-        bool badcharge = std::ranges::any_of(raw_q_dist,[&](short q){
-                return q < m_config.maxChargeCutOff;
-            });
-        if(!badcharge){
         clusterHits.push_back(layerHits[0]);
-        }
         for (std::size_t i = 1; i < layerHits.size(); ++i) {
-            //check the charge distribution in adc counts - if too small raw_q appears consider it as noise strip
-            raw_q_dist = layerHits[i].chargeDist;
-            badcharge = std::ranges::any_of(raw_q_dist,[&](short q){
-                return q < m_config.maxChargeCutOff;
-            });
-            if(badcharge){
-                continue;
-            }
-            const int strip = static_cast<int>(layerHits[i].strip);   // was .stripId
+            const int strip = static_cast<int>(layerHits[i].strip);
             const unsigned int dist = static_cast<unsigned int>(strip - last);
-            if (dist > m_config.maxGap) {                             // was m_cfg.maxGap
+            if (dist > m_config.maxGap) {
                 dumpCluster();                        // flush the finished cluster
                 clusterHits.push_back(layerHits[i]);  // start a new one
                 last = strip;
